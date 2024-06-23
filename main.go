@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+type apiConfig struct {
+	fileserverHits int
+}
+
 func main() {
 	const port = "8080"
 	apiCfg := &apiConfig{
@@ -18,8 +22,9 @@ func main() {
 
 	mux.Handle("/app/*", http.StripPrefix("/app", fileServer))
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
-	mux.HandleFunc("GET /api/metrics", apiCfg.metricsHandler)
 	mux.HandleFunc("/api/reset", apiCfg.resetHandler)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.metricsHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -37,7 +42,11 @@ func healthzHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) metricsHandler(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits)))
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
+	html := "<html><body><h1>Welcome, Chirpy Admin</h1><p>Chirpy has been visited %d times!</p></body></html>"
+	w.Write([]byte(fmt.Sprintf(html, cfg.fileserverHits)))
+
+	//fmt.Sprintf("Hits: %d", cfg.fileserverHits))
 }
 
 func (cfg *apiConfig) resetHandler(w http.ResponseWriter, req *http.Request) {
